@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "WorkloadID": {
+      "value": "O365Data"
+    },
+    "clientID": {
+      "value": "<AADclientId>"
+    },
+    "clientSecret": {
+      "value": "AADclientSecret"
+    },
+    "contentTypes": {
+        "value": "Audit.General,DLP.ALL"
+      },
+    "domain": {
+      "value": "<domain>.onmicrosoft.com"
+    },
+    "lookbackTimeInMins": {
+        "value": "30"
+    },   
+    "publisher": {
+      "value": "<GUID>"
+    },
+    "recordTypes": {
+      "value": "0"
+    },
+    "storageAccountTableName": {
+        "value": "loghistory"
+    },
+    "workspaceID": {
+      "value": "<workspaceId"
+    },
+    "workspaceKey": {
+      "value": "workspaceKey"
+    }
+  }
+}
