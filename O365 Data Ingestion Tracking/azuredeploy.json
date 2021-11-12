@@ -278,7 +278,7 @@
                         "storageAccountTableName":"[parameters('storageAccountTableName')]",
                         "workspaceID": "[parameters('workspaceID')]",
                         "workspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), 'workspaceKey')).SecretUri, ')')]",
-                        "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/Azure/Azure-Sentinel/blob/master/DataConnectors/O365%20Data/O365APItoAS-Template.zip?raw=true",
+                        "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/LSLWatson/BitsandBytes/blob/main/O365%20Data%20Ingestion%20Tracking/o365dataingestiontracking.zip?raw=true",
                         "customLogName": "O365"
                     }
                 }
