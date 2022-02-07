@@ -18,7 +18,7 @@
       "value": "<domain>.onmicrosoft.com"
     },
     "lookbackTimeInMins": {
-        "value": "30"
+        "value": "15"
     },   
     "publisher": {
       "value": "<GUID>"
