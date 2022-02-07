@@ -27,9 +27,10 @@ function Get-AuthToken{
     $resource = "https://manage.office.com"
     # auth
     $body = @{grant_type="client_credentials";resource=$resource;client_id=$ClientID;client_secret=$ClientSecret}
-    $oauth = Invoke-RestMethod -Method Post -Uri $loginURL/$tenantdomain/oauth2/token?api-version=1.0 -Body $body
+    $oauth = Invoke-RestMethod -Method Post -SessionVariable 'session' -Uri $loginURL/$tenantdomain/oauth2/token?api-version=1.0 -Body $body
     $headerParams = @{'Authorization'="$($oauth.token_type) $($oauth.access_token)"}
-    return $headerParams 
+    #CHANGE
+    return $headerParams, $session
 }
 
 function Get-AzTableRow
@@ -576,93 +577,110 @@ function Get-O365Data{
         [parameter(Mandatory = $true, Position = 3)]
         [string]$tenantGuid,
         [Parameter(Mandatory=$true, Position = 4)]
-        $Table
+        $Table,
+        [Parameter(Mandatory=$true, Position = 5)]
+        $session,
+        [Parameter(Mandatory=$true, Position = 6)]
+        $lookbackTime
     )
     #List Available Content
     $contentTypes = $env:contentTypes.split(",")
     $numDuplicates = 0
     $numLogged = 0
     #Loop for each content Type like Audit.General
-    foreach($contentType in $contentTypes){
-        $listAvailableContentUri = "https://manage.office.com/api/v1.0/$tenantGUID/activity/feed/subscriptions/content?contentType=$contentType&PublisherIdentifier=$env:publisher&startTime=$utcStartTime&endTime=$utcEndTime"
-        do {
-            #List Available Content
-            $contentResult = Invoke-RestMethod -Method GET -Headers $headerParams -Uri $listAvailableContentUri
-            $contentResult.Count
-            #Loop for each Content
-            foreach($obj in $contentResult){
-                #Retrieve Content
-                $data = Invoke-RestMethod -Method GET -Headers $headerParams -Uri ($obj.contentUri)
-                $data.Count
-                #Loop through each Record in the Content
-                foreach($event in $data){
-                    #Filtering for Recrord types
-                    #Get all Record Types
-                    $eventCreationFormat = $Event.CreationTime | Get-Date -format yyyy-MM-ddTHH:mm
-                    if($env:recordTypes -eq "0"){
-                        #We dont need Cloud App Security Alerts due to MCAS connector
-                        if(($event.Source) -ne "Cloud App Security"){
-                            #Write each event to Log A
-                            $TableData = Get-AzTableRow -Table $Table -PartitionKey $Event.RecordType -RowKey $Event.Id
-                            if ($TableData) {
-                                $numDuplicates++
-                                #Write-Output "Skipping - $DateNow $($Event.Id) -= $($Event.RecordType) $($Event.Operation)"
-                                }else{
-                                $numLogged++
-                                $DateNow = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm
-                                #Write-Output "$DateNow $($Event.Id)  $($Event.CreationTime) $($Event.RecordType) $($Event.Operation)"
-                                # Add results to Table for Log Tracking and publish to Log Analytics
-                                Add-AzTableRow -Table $Table -PartitionKey $Event.RecordType -RowKey $Event.Id -Property @{'TimeCreated' = $eventCreationFormat; 'TimeIngested'= $DateNow} | Out-Null
-                                $writeResult = Write-OMSLogfile (Get-Date) $env:customLogName $event $env:workspaceId $env:workspaceKey
-                            }
-                        }
-                    }
-                    else{
-                        #Get only certain record types
-                        $types = ($env:recordTypes).split(",")
-                        $eventCreationFormat = $Event.CreationTime | Get-Date -format yyyy-MM-ddTHH:mm
-                        if(($event.RecordType) -in $types){
+
+    $cycles = $lookbackTime.TotalMinutes / 5
+
+    for ($cycle = 0 ; $cycle -lt $cycles ; $cycle++){
+        $cycleStart = (Get-Date $utcStartTime).AddMinutes(5 * $cycle)| Get-Date -format yyyy-MM-ddTHH:mm:ss
+        $cycleEnd = (Get-Date $cycleStart).AddMinutes(5).AddSeconds(-1) | Get-Date -format yyyy-MM-ddTHH:mm:ss
+
+        if($cycleEnd -gt  $utcEndTime) {$cycleEnd = $utcEndTime}
+
+        "Scanning pass $($cycle+1)/$([math]::ceiling($cycles)) spanning $cycleStart - $cycleEnd"
+
+        foreach($contentType in $contentTypes){
+            $listAvailableContentUri = "https://manage.office.com/api/v1.0/$tenantGUID/activity/feed/subscriptions/content?contentType=$contentType&PublisherIdentifier=$env:publisher&startTime=$cycleStart&endTime=$cycleEnd"
+            do {
+                #List Available Content
+                $contentResult = Invoke-RestMethod -Method GET -Headers $headerParams -WebSession $session -Uri $listAvailableContentUri
+                #$contentResult.Count
+                #Loop for each Content
+                foreach($obj in $contentResult){
+                    #Retrieve Content
+                    $data = Invoke-RestMethod -Method GET -Headers $headerParams -WebSession $session -Uri ($obj.contentUri)
+                    #$data.Count
+                    #Loop through each Record in the Content
+                    foreach($event in $data){
+                        #Filtering for Recrord types
+                        #Get all Record Types
+                        $eventCreationFormat = $Event.CreationTime | Get-Date -format yyyy-MM-ddTHH:mm:ss
+                        if($env:recordTypes -eq "0"){
                             #We dont need Cloud App Security Alerts due to MCAS connector
                             if(($event.Source) -ne "Cloud App Security"){
                                 #Write each event to Log A
-                                $TableData = Get-AzTableRow -Table $Table -PartitionKey $types[0] -RowKey $Event.Id
+                                $TableData = Get-AzTableRow -Table $Table -PartitionKey $Event.RecordType -RowKey $Event.Id
                                 if ($TableData) {
                                     $numDuplicates++
-                                    #Write-Output "Skipping - $DateNow $($Event.Id)  $($Event.CreationTime) $($Event.RecordType) $($Event.Operation)"
-                                }else{
+                                    #Write-Output "Skipping - $DateNow $($Event.Id) -= $($Event.RecordType) $($Event.Operation)"
+                                    }else{
                                     $numLogged++
-                                    $DateNow = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm
+                                    $DateNow = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm:ss
                                     #Write-Output "$DateNow $($Event.Id)  $($Event.CreationTime) $($Event.RecordType) $($Event.Operation)"
                                     # Add results to Table for Log Tracking and publish to Log Analytics
-                                    Add-AzTableRow -Table $Table -PartitionKey $types[0] -RowKey $Event.Id -Property @{'TimeCreated' = $eventCreationFormat; 'TimeIngested'= $DateNow} | Out-Null
+                                    Add-AzTableRow -Table $Table -PartitionKey $Event.RecordType -RowKey $Event.Id -Property @{'TimeCreated' = $eventCreationFormat; 'TimeIngested'= $DateNow} | Out-Null
                                     $writeResult = Write-OMSLogfile (Get-Date) $env:customLogName $event $env:workspaceId $env:workspaceKey
                                 }
                             }
                         }
-                        
+                        else{
+                            #Get only certain record types
+                            $types = ($env:recordTypes).split(",")
+                            $eventCreationFormat = $Event.CreationTime | Get-Date -format yyyy-MM-ddTHH:mm:ss
+                            if(($event.RecordType) -in $types){
+                                #We dont need Cloud App Security Alerts due to MCAS connector
+                                if(($event.Source) -ne "Cloud App Security"){
+                                    #Write each event to Log A
+                                    $TableData = Get-AzTableRow -Table $Table -PartitionKey $types[0] -RowKey $Event.Id
+                                    if ($TableData) {
+                                        $numDuplicates++
+                                        #Write-Output "Skipping - $DateNow $($Event.Id)  $($Event.CreationTime) $($Event.RecordType) $($Event.Operation)"
+                                    }else{
+                                        $numLogged++
+                                        $DateNow = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm:ss
+                                        #Write-Output "$DateNow $($Event.Id)  $($Event.CreationTime) $($Event.RecordType) $($Event.Operation)"
+                                        # Add results to Table for Log Tracking and publish to Log Analytics
+                                        Add-AzTableRow -Table $Table -PartitionKey $types[0] -RowKey $Event.Id -Property @{'TimeCreated' = $eventCreationFormat; 'TimeIngested'= $DateNow} | Out-Null
+                                        $writeResult = Write-OMSLogfile (Get-Date) $env:customLogName $event $env:workspaceId $env:workspaceKey
+                                    }
+                                }
+                            }
+                            
+                        }
                     }
                 }
-            }
-            
-            #Handles Pagination
-            $nextPageResult = Invoke-WebRequest -Method GET -Headers $headerParams -Uri $listAvailableContentUri
-            If(($nextPageResult.Headers.NextPageUrl) -ne $null){
-                $nextPage = $true
-                $listAvailableContentUri = $nextPageResult.Headers.NextPageUrl
-            }
-            Else{$nextPage = $false}
-        } until ($nextPage -eq $false)
+                
+                #Handles Pagination
+                $nextPageResult = Invoke-WebRequest -Method GET -Headers $headerParams -WebSession $session -Uri $listAvailableContentUri
+                If(($nextPageResult.Headers.NextPageUrl) -ne $null){
+                    $nextPage = $true
+                    $listAvailableContentUri = $nextPageResult.Headers.NextPageUrl
+                }
+                Else{$nextPage = $false}
+            } until ($nextPage -eq $false)
+        }
+
     }
+
     Write-Output "$numLogged Log entries imported to Log Analytics"
     Write-Output "$numDuplicates Log entries skipped because they were previously imported"
-    
 }
 
 #Configure span of log query for API calls
 $lookbackTime = New-TimeSpan -Minutes $env:lookbackTimeInMins
-$utcEndTime = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm
+$utcEndTime = Get-Date ([datetime]::UtcNow) -format yyyy-MM-ddTHH:mm:ss
 $utcStartTime = (Get-Date ([datetime]::UtcNow)) - $lookbackTime
-$utcStartTime = $utcStartTime | Get-Date -format yyyy-MM-ddTHH:mm
+$utcStartTime = $utcStartTime | Get-Date -format yyyy-MM-ddTHH:mm:ss
 
 #Configure Storage Context
 $storAccountKeys = Get-AzStorageAccountKey -ResourceGroupName $env:storageAccountRG -Name $env:storageAccount
@@ -676,8 +694,8 @@ if ($Timer.IsPastDue) {
 
 Write-Output "Searching for logs from: $utcStartTime to $utcEndTime"
 
-$headerParams = Get-AuthToken $env:clientID $env:clientSecret $env:domain $env:tenantGuid
-Get-O365Data $utcStartTime $utcEndTime $headerParams $env:tenantGuid $storAccountTable
+$headerParams, $session = Get-AuthToken $env:clientID $env:clientSecret $env:domain $env:tenantGuid
+Get-O365Data $utcStartTime $utcEndTime $headerParams $env:tenantGuid $storAccountTable $session $lookbackTime
 
 # Remove logs older than Lookback Time from Table
 $logsOld = Get-AzTableRow -Table $storAccountTable -CustomFilter "(TimeCreated lt '$utcStartTime')"

@@ -277,7 +277,7 @@
                         "storageAccountRG":"[resourceGroup().name]",
                         "storageAccountTableName":"[parameters('storageAccountTableName')]",
                         "workspaceID": "[parameters('workspaceID')]",
-                        "workspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), 'workspaceKey')).SecretUri, ')')]", 
+                        "workspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), 'workspaceKey')).SecretUri, ')')]",
                         "customLogName": "O365"
                     }
                 }
