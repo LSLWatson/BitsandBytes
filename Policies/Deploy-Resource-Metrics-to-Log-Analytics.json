@@ -1,0 +1,341 @@
+{
+  "mode": "All",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "in": [
+    "microsoft.aad/domainservices",
+    "microsoft.analysisservices/servers",
+    "microsoft.apimanagement/gateways",
+    "microsoft.apimanagement/service",
+    "microsoft.apimanagement/service/workspaces",
+    "microsoft.app/containerapps",
+    "microsoft.app/jobs",
+    "microsoft.app/managedenvironments",
+    "microsoft.appconfiguration/configurationstores",
+    "microsoft.appplatform/spring",
+    "microsoft.automation/automationaccounts",
+    "microsoft.avs/privateclouds",
+    "microsoft.azuresphere/catalogs",
+    "microsoft.batch/batchaccounts",
+    "microsoft.bing/accounts",
+    "microsoft.botservice/botservices",
+    "microsoft.botservice/botservices/channels",
+    "microsoft.botservice/botservices/connections",
+    "microsoft.botservice/checknameavailability",
+    "microsoft.botservice/hostsettings",
+    "microsoft.botservice/listauthserviceproviders",
+    "microsoft.botservice/listqnamakerendpointkeys",
+    "microsoft.cache/redis",
+    "microsoft.cache/redisenterprise",
+    "microsoft.cache/redisenterprise/databases",
+    "microsoft.cdn/cdnwebapplicationfirewallpolicies",
+    "microsoft.cdn/edgeactions",
+    "microsoft.cdn/profiles",
+    "microsoft.cdn/profiles/endpoints",
+    "microsoft.classiccompute/domainnames/slots/roles",
+    "microsoft.classiccompute/virtualmachines",
+    "microsoft.classicstorage/storageaccounts",
+    "microsoft.classicstorage/storageaccounts/blobservices",
+    "microsoft.classicstorage/storageaccounts/fileservices",
+    "microsoft.classicstorage/storageaccounts/queueservices",
+    "microsoft.classicstorage/storageaccounts/tableservices",
+    "microsoft.clusterstor/nodes",
+    "microsoft.cognitiveservices/accounts",
+    "microsoft.codesigning/codesigningaccounts",
+    "microsoft.communication/communicationservices",
+    "microsoft.compute/cloudservices",
+    "microsoft.compute/cloudservices/roles",
+    "microsoft.compute/disks",
+    "microsoft.compute/virtualmachines",
+    "microsoft.compute/virtualmachinescalesets",
+    "microsoft.compute/virtualmachinescalesets/virtualmachines",
+    "microsoft.connectedcache/cachenodes",
+    "microsoft.connectedcache/enterprisemcccustomers",
+    "microsoft.connectedcache/ispcustomers",
+    "microsoft.connectedvehicle/platformaccounts",
+    "microsoft.containerinstance/containergroups",
+    "microsoft.containerinstance/containerscalesets",
+    "microsoft.containerregistry/registries",
+    "microsoft.containerservice/managedclusters",
+    "microsoft.containerservice/fleets",
+    "microsoft.customproviders/resourceproviders",
+    "microsoft.dashboard/grafana",
+    "microsoft.datafactory/datafactories",
+    "microsoft.datalakeanalytics/accounts",
+    "microsoft.datalakestore/accounts",
+    "microsoft.dataprotection/backupvaults",
+    "microsoft.datashare/accounts",
+    "microsoft.dbformariadb/servers",
+    "microsoft.dbformysql/flexibleservers",
+    "microsoft.dbformysql/servers",
+    "microsoft.dbforpostgresql/flexibleservers",
+    "microsoft.dbforpostgresql/servers",
+    "microsoft.dbforpostgresql/servergroupsv2",
+    "microsoft.devcenter/devcenters",
+    "microsoft.devices/iothubs",
+    "microsoft.devices/provisioningservices",
+    "microsoft.devopsinfrastructure/pools",
+    "microsoft.digitaltwins/digitaltwinsinstances",
+    "microsoft.documentdb/cassandraclusters",
+    "microsoft.documentdb/databaseaccounts",
+    "microsoft.documentdb/fleets",
+    "microsoft.documentdb/garnetclusters",
+    "microsoft.documentdb/mongoclusters",
+    "microsoft.edgezones/edgezones",
+    "microsoft.elasticsan/elasticsans",
+    "microsoft.eventgrid/domains",
+    "microsoft.eventgrid/eventsubscriptions",
+    "microsoft.eventgrid/extensiontopics",
+    "microsoft.eventgrid/namespaces",
+    "microsoft.eventgrid/partnernamespaces",
+    "microsoft.eventgrid/partnertopics",
+    "microsoft.eventgrid/systemtopics",
+    "microsoft.eventgrid/topics",
+    "microsoft.eventhub/clusters",
+    "microsoft.eventhub/namespaces",
+    "microsoft.hdinsight/clusters",
+    "microsoft.healthcareapis/services",
+    "microsoft.healthcareapis/workspaces/dicomservices",
+    "microsoft.healthcareapis/workspaces/fhirservices",
+    "microsoft.healthcareapis/workspaces/iotconnectors",
+    "microsoft.healthmodel/healthmodels",
+    "microsoft.hybridcontainerservice/provisionedclusters",
+    "microsoft.hybridnetwork/networkfunctions",
+    "microsoft.hybridnetwork/virtualnetworkfunctions",
+    "microsoft.insights/autoscalesettings",
+    "microsoft.insights/components",
+    "microsoft.insights/datacollectionrules",
+    "microsoft.iotcentral/iotapps",
+    "microsoft.iotfirmwaredefense/workspaces",
+    "microsoft.keyvault/managedhsms",
+    "microsoft.keyvault/vaults",
+    "microsoft.kubernetes/connectedclusters",
+    "microsoft.kubernetesconfiguration/extensions",
+    "microsoft.kusto/clusters",
+    "microsoft.logic/integrationaccounts",
+    "microsoft.logic/integrationserviceenvironments",
+    "microsoft.logic/workflows",
+    "microsoft.machinelearningservices/registries",
+    "microsoft.machinelearningservices/workspaces",
+    "microsoft.machinelearningservices/workspaces/onlineendpoints",
+    "microsoft.machinelearningservices/workspaces/onlineendpoints/deployments",
+    "microsoft.maps/accounts",
+    "microsoft.managednetworkfabric/internetgateways",
+    "microsoft.managednetworkfabric/l3isolationdomains",
+    "microsoft.managednetworkfabric/networkdevices",
+    "microsoft.messagingconnectors/connectors",
+    "microsoft.mixedreality/remoterenderingaccounts",
+    "microsoft.mixedreality/spatialanchorsaccounts",
+    "microsoft.mobilenetwork/mobilenetworks/sites",
+    "microsoft.mobilenetwork/packetcorecontrolplanes",
+    "microsoft.mobilenetwork/packetcorecontrolplanes/packetcoredataplanes",
+    "microsoft.mobilenetwork/radioaccessnetworks",
+    "microsoft.monitor/accounts",
+    "microsoft.netapp/netappaccounts",
+    "microsoft.netapp/netappaccounts/capacitypools",
+    "microsoft.netapp/netappaccounts/capacitypools/volumes",
+    "microsoft.network/applicationgateways",
+    "microsoft.network/azurefirewalls",
+    "microsoft.network/bastionhosts",
+    "microsoft.network/connections",
+    "microsoft.network/dnsforwardingrulesets",
+    "microsoft.network/dnsresolverdomainlists",
+    "microsoft.network/dnsresolverpolicies",
+    "microsoft.network/dnsresolvers",
+    "microsoft.network/dnszones",
+    "microsoft.network/expressroutecircuits",
+    "microsoft.network/expressroutecircuits/peerings",
+    "microsoft.network/expressroutegateways",
+    "microsoft.network/expressrouteports",
+    "microsoft.network/frontdoors",
+    "microsoft.network/loadbalancers",
+    "microsoft.network/natgateways",
+    "microsoft.network/networkinterfaces",
+    "microsoft.network/networkmanagers/ipampools",
+    "microsoft.network/networksecuritygroups",
+    "microsoft.network/networksecurityperimeters",
+    "microsoft.network/networksecurityperimeters/profiles",
+    "microsoft.network/networkwatchers/connectionmonitors",
+    "microsoft.network/p2svpngateways",
+    "microsoft.network/privatednszones",
+    "microsoft.network/privateendpoints",
+    "microsoft.network/privatelinkservices",
+    "microsoft.network/publicipaddresses",
+    "microsoft.network/publicipprefixes",
+    "microsoft.network/trafficmanagerprofiles",
+    "microsoft.network/virtualhubs",
+    "microsoft.network/virtualnetworkgateways",
+    "microsoft.network/virtualnetworks",
+    "microsoft.network/virtualrouters",
+    "microsoft.network/vpngateways",
+    "microsoft.networkfunction/azuretrafficcollectors",
+    "microsoft.notificationhubs/namespaces/notificationhubs",
+    "microsoft.operationalinsights/workspaces",
+    "microsoft.orbital/contactprofiles",
+    "microsoft.orbital/geocatalogs",
+    "microsoft.orbital/l2connections",
+    "microsoft.orbital/spacecrafts",
+    "microsoft.orbital/terminals",
+    "microsoft.playfab/titles",
+    "microsoft.powerbidedicated/capacities",
+    "microsoft.purview/accounts",
+    "microsoft.recoveryservices/vaults",
+    "microsoft.relay/namespaces",
+    "microsoft.search/searchservices",
+    "microsoft.securitydetonation/chambers",
+    "microsoft.servicebus/namespaces",
+    "microsoft.servicenetworking/trafficcontrollers",
+    "microsoft.signalrservice/signalr",
+    "microsoft.signalrservice/signalr/replicas",
+    "microsoft.signalrservice/webpubsub",
+    "microsoft.signalrservice/webpubsub/replicas",
+    "microsoft.singularity/accounts",
+    "microsoft.sql/managedinstances",
+    "microsoft.sql/managedinstances/databases",
+    "microsoft.sql/servers/databases",
+    "microsoft.sql/servers/elasticpools",
+    "microsoft.sql/servers/jobagents",
+    "microsoft.storage/storageaccounts",
+    "microsoft.storage/storageaccounts/blobservices",
+    "microsoft.storage/storageaccounts/fileservices",
+    "microsoft.storage/storageaccounts/objectreplicationpolicies",
+    "microsoft.storage/storageaccounts/queueservices",
+    "microsoft.storage/storageaccounts/storagetasks",
+    "microsoft.storage/storageaccounts/tableservices",
+    "microsoft.storageactions/storagetasks",
+    "microsoft.storagecache/amlfilesystems",
+    "microsoft.storagecache/caches",
+    "microsoft.storagemover/storagemovers",
+    "microsoft.storagesync/storagesyncservices",
+    "microsoft.storagetasks/storagetasks",
+    "microsoft.streamanalytics/streamingjobs",
+    "microsoft.synapse/workspaces",
+    "microsoft.synapse/workspaces/bigdatapools",
+    "microsoft.synapse/workspaces/kustopools",
+    "microsoft.synapse/workspaces/scopepools",
+    "microsoft.synapse/workspaces/sqlpools",
+    "microsoft.web/containerapps",
+    "microsoft.web/hostingenvironments",
+    "microsoft.web/hostingenvironments/multirolepools",
+    "microsoft.web/hostingenvironments/workerpools",
+    "microsoft.web/serverfarms",
+    "microsoft.web/sites",
+    "microsoft.web/sites/slots",
+    "microsoft.web/staticsites",
+    "nginx.nginxplus/nginxdeployments",
+    "oracle.database/autonomousdatabases",
+    "oracle.database/cloudvmclusters",
+    "oracle.database/exadbvmclusters",
+    "private.messagingconnectors/connectors",
+    "wandisco.fusion/migrators",
+    "wandisco.fusion/migrators/datatransferagents",
+    "wandisco.fusion/migrators/livedatamigrations",
+    "wandisco.fusion/migrators/metadatamigrations"
+]
+        }
+      ]
+    },
+    "then": {
+      "effect": "DeployIfNotExists",
+      "details": {
+        "type": "Microsoft.Insights/diagnosticSettings",
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/metrics[*].enabled",
+              "equals": "[parameters('metricsEnabled')]"
+            },
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+              "equals": "[parameters('logAnalytics')]"
+            }
+          ]
+        },
+        "roleDefinitionIds": [
+          "/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+        ],
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "resourceId": {
+                  "type": "string"
+                },
+                "metricsEnabled": {
+                  "type": "bool"
+                },
+                "logAnalytics": {
+                  "type": "string"
+                }
+              },
+              "variables": {},
+              "resources": [
+                {
+                  "type": "Microsoft.Insights/diagnosticSettings",
+                  "apiVersion": "2021-05-01-preview",
+                  "name": "[concat('metrics')]",
+                  "scope": "[parameters('resourceId')]",
+                  "dependsOn": [],
+                  "properties": {
+                    "workspaceId": "[parameters('logAnalytics')]",
+                    "metrics": [
+                      {
+                        "category": "AllMetrics",
+                        "enabled": "[parameters('metricsEnabled')]",
+                        "retentionPolicy": {
+                          "enabled": false,
+                          "days": 0
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "outputs": {}
+            },
+            "parameters": {
+              "resourceId": {
+                "value": "[field('id')]"
+              },
+              "metricsEnabled": {
+                "value": "[parameters('metricsEnabled')]"
+              },
+              "logAnalytics": {
+                "value": "[parameters('logAnalytics')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {
+    "metricsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Metrics Enabled",
+        "description": null
+      },
+      "allowedValues": [
+        true,
+        false
+      ],
+      "defaultValue": true
+    },
+    "logAnalytics": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Log Analytics workspace",
+        "description": "Select Log Analytics workspace from dropdown list. If this workspace is outside of the scope of the assignment you must manually grant 'Log Analytics Contributor' permissions (or similar) to the policy assignment's principal ID.",
+        "strongType": "omsWorkspace",
+        "assignPermissions": true
+      }
+    }
+  }
+}
