@@ -1,0 +1,86 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspaceName": {
+      "type": "string"
+    },
+    "workspaceRG": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource Group of the Log Analytics workspace"
+      }
+    },
+    "location": {
+      "type": "string"
+    },
+    "dcrName": {
+      "type": "string"
+    },
+    "tableName": {
+      "type": "string",
+      "defaultValue": "ResolvedDomains_CL"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2022-10-01",
+      "name": "[concat(parameters('workspaceName'), '/', parameters('tableName'))]",
+      "location": "[parameters('location')]",
+      "scope": "[resourceId(subscription().subscriptionId, parameters('workspaceRG'), 'Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+      "properties": {
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            {
+              "name": "domainName_s",
+              "type": "string"
+            },
+            {
+              "name": "registrationDate_t",
+              "type": "datetime"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2022-06-01",
+      "name": "[concat(parameters('dcrName'), '-dcr')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "dataSources": {
+          "customLogs": [
+            {
+              "name": "ResolvedDomainsSource",
+              "streams": [
+                "Custom-ResolvedDomains_CL"
+              ],
+              "format": "json"
+            }
+          ]
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[resourceId(subscription().subscriptionId, parameters('workspaceRG'), 'Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+              "name": "la-destination"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Custom-ResolvedDomains_CL"
+            ],
+            "destinations": [
+              "la-destination"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
