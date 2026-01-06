@@ -1,0 +1,300 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "templateHash": "CEFIngestor-v1.0"
+    }
+  },
+  "parameters": {
+    "baseName": {
+      "type": "string",
+      "defaultValue": "cefingestor",
+      "metadata": {
+        "description": "Base name for all resources"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "workspaceResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics Workspace Resource ID (e.g., /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name})"
+      }
+    },
+    "initialLogTypes": {
+      "type": "string",
+      "defaultValue": "firewall,ids,auth,antivirus",
+      "metadata": {
+        "description": "Initial CEF log types to generate (comma-separated: firewall,ids,auth,antivirus)"
+      }
+    },
+    "initialEventsPerMinute": {
+      "type": "int",
+      "defaultValue": 100,
+      "minValue": 50,
+      "maxValue": 500,
+      "metadata": {
+        "description": "Initial events per minute (50-500)"
+      }
+    },
+    "enableOnDeploy": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable CEF generation on deployment"
+      }
+    }
+  },
+  "variables": {
+    "uniqueSuffix": "[uniqueString(resourceGroup().id, parameters('baseName'))]",
+    "functionAppName": "[format('{0}-func-{1}', parameters('baseName'), variables('uniqueSuffix'))]",
+    "storageAccountName": "[toLower(format('{0}st{1}', take(parameters('baseName'), 6), take(variables('uniqueSuffix'), 10)))]",
+    "appServicePlanName": "[format('{0}-plan-{1}', parameters('baseName'), variables('uniqueSuffix'))]",
+    "appInsightsName": "[format('{0}-ai-{1}', parameters('baseName'), variables('uniqueSuffix'))]",
+    "dceName": "[format('{0}-dce-{1}', parameters('baseName'), variables('uniqueSuffix'))]",
+    "dcrName": "[format('{0}-dcr-{1}', parameters('baseName'), variables('uniqueSuffix'))]",
+    "monitoringMetricsPublisherRoleId": "3913510d-42f4-4e42-8a64-420c390055eb"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[parameters('workspaceResourceId')]",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionEndpoints",
+      "apiVersion": "2022-06-01",
+      "name": "[variables('dceName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "networkAcls": {
+          "publicNetworkAccess": "Enabled"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2022-06-01",
+      "name": "[variables('dcrName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]",
+        "streamDeclarations": {
+          "Microsoft-CommonSecurityLog": {
+            "columns": [
+              { "name": "TimeGenerated", "type": "datetime" },
+              { "name": "DeviceVendor", "type": "string" },
+              { "name": "DeviceProduct", "type": "string" },
+              { "name": "DeviceVersion", "type": "string" },
+              { "name": "DeviceEventClassID", "type": "string" },
+              { "name": "Activity", "type": "string" },
+              { "name": "LogSeverity", "type": "int" },
+              { "name": "SourceIP", "type": "string" },
+              { "name": "DestinationIP", "type": "string" },
+              { "name": "SourceHostName", "type": "string" },
+              { "name": "DestinationHostName", "type": "string" },
+              { "name": "SourceUserName", "type": "string" },
+              { "name": "Protocol", "type": "string" },
+              { "name": "DeviceAction", "type": "string" },
+              { "name": "Message", "type": "string" },
+              { "name": "Computer", "type": "string" },
+              { "name": "DeviceExternalID", "type": "string" },
+              { "name": "DeviceName", "type": "string" },
+              { "name": "DestinationPort", "type": "int" },
+              { "name": "SourcePort", "type": "int" },
+              { "name": "FileName", "type": "string" },
+              { "name": "FilePath", "type": "string" },
+              { "name": "FileHash", "type": "string" },
+              { "name": "SimplifiedDeviceAction", "type": "string" },
+              { "name": "ReceiptTime", "type": "datetime" }
+            ]
+          }
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[parameters('workspaceResourceId')]",
+              "name": "sentinel-workspace"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": ["Microsoft-CommonSecurityLog"],
+            "destinations": ["sentinel-workspace"],
+            "transformKql": "source",
+            "outputStream": "Microsoft-CommonSecurityLog"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]",
+        "[resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "linuxFxVersion": "Python|3.11",
+          "pythonVersion": "3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', variables('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-01-01').keys[0].value)]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).InstrumentationKey]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+            },
+            {
+              "name": "CEF_ENABLED",
+              "value": "[if(parameters('enableOnDeploy'), 'true', 'false')]"
+            },
+            {
+              "name": "CEF_LOG_TYPES",
+              "value": "[parameters('initialLogTypes')]"
+            },
+            {
+              "name": "CEF_EVENTS_PER_MINUTE",
+              "value": "[string(parameters('initialEventsPerMinute'))]"
+            },
+            {
+              "name": "DCE_ENDPOINT",
+              "value": "[reference(resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))).logsIngestion.endpoint]"
+            },
+            {
+              "name": "DCR_IMMUTABLE_ID",
+              "value": "[reference(resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))).immutableId]"
+            },
+            {
+              "name": "DCR_STREAM_NAME",
+              "value": "Microsoft-CommonSecurityLog"
+            }
+          ],
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), variables('monitoringMetricsPublisherRoleId'))]",
+      "scope": "[format('Microsoft.Insights/dataCollectionRules/{0}', variables('dcrName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))]",
+        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('monitoringMetricsPublisherRoleId'))]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2023-01-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[variables('functionAppName')]"
+    },
+    "functionAppResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2023-01-01', 'full').identity.principalId]"
+    },
+    "dataCollectionEndpointUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))).logsIngestion.endpoint]"
+    },
+    "dataCollectionRuleId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))]"
+    },
+    "dataCollectionRuleImmutableId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/dataCollectionRules', variables('dcrName'))).immutableId]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "value": "[variables('appInsightsName')]"
+    }
+  }
+}

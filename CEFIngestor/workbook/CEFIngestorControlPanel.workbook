@@ -1,0 +1,490 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# 🛡️ CEF Ingestor Control Panel\n\nThis workbook allows you to control the CEF event generation for Microsoft Sentinel testing.\n\n---"
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "value": null
+          },
+          {
+            "id": "resourcegroup-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroup",
+            "type": 2,
+            "isRequired": true,
+            "query": "Resources\n| where type =~ 'microsoft.resources/subscriptions/resourcegroups'\n| where subscriptionId == '{Subscription:subscriptionId}'\n| project value = name, label = name\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": null
+          },
+          {
+            "id": "functionapp-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "FunctionApp",
+            "type": 2,
+            "isRequired": true,
+            "query": "Resources\n| where type =~ 'microsoft.web/sites'\n| where kind contains 'functionapp'\n| where resourceGroup == '{ResourceGroup}'\n| where subscriptionId == '{Subscription:subscriptionId}'\n| project value = id, label = name\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": null
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "resource-parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## ⚙️ Current Configuration"
+      },
+      "name": "config-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\n| where type =~ 'microsoft.web/sites'\n| where id == '{FunctionApp}'\n| extend settings = properties.siteConfig.appSettings\n| mv-expand setting = settings\n| where setting.name in ('CEF_ENABLED', 'CEF_LOG_TYPES', 'CEF_EVENTS_PER_MINUTE')\n| project Setting = tostring(setting.name), Value = tostring(setting.value)\n| order by Setting asc",
+        "size": 4,
+        "title": "Current App Settings",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Setting",
+              "formatter": 0,
+              "formatOptions": {
+                "customColumnWidthSetting": "200px"
+              }
+            },
+            {
+              "columnMatch": "Value",
+              "formatter": 0
+            }
+          ]
+        }
+      },
+      "name": "current-settings"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🎛️ Update Configuration\n\nConfigure the CEF event generation settings below. Click **Apply Changes** to update the Function App settings."
+      },
+      "name": "update-header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "enabled-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "CEF_Enabled",
+            "label": "Enable Generation",
+            "type": 2,
+            "isRequired": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[{\"value\": \"true\", \"label\": \"✅ Enabled\"}, {\"value\": \"false\", \"label\": \"⛔ Disabled\"}]",
+            "value": "true"
+          },
+          {
+            "id": "logtypes-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Log_Types",
+            "label": "Log Types",
+            "type": 2,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[{\"value\": \"firewall\", \"label\": \"🔥 Firewall\"}, {\"value\": \"ids\", \"label\": \"🛡️ IDS/IPS\"}, {\"value\": \"auth\", \"label\": \"🔐 Authentication\"}, {\"value\": \"antivirus\", \"label\": \"🦠 Antivirus\"}]",
+            "value": [
+              "firewall",
+              "ids",
+              "auth",
+              "antivirus"
+            ]
+          },
+          {
+            "id": "eventspermin-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Events_Per_Minute",
+            "label": "Events Per Minute",
+            "type": 2,
+            "isRequired": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[{\"value\": \"50\", \"label\": \"50 (Low)\"}, {\"value\": \"100\", \"label\": \"100 (Default)\"}, {\"value\": \"200\", \"label\": \"200 (Medium)\"}, {\"value\": \"300\", \"label\": \"300 (High)\"}, {\"value\": \"500\", \"label\": \"500 (Maximum)\"}]",
+            "value": "100"
+          }
+        ],
+        "style": "formVertical",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      },
+      "name": "config-parameters"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "nav",
+        "links": [
+          {
+            "id": "apply-changes",
+            "cellValue": "{FunctionApp}",
+            "linkTarget": "ArmAction",
+            "linkLabel": "🚀 Apply Changes",
+            "style": "primary",
+            "linkIsContextBlade": true,
+            "armActionContext": {
+              "path": "{FunctionApp}/config/appsettings",
+              "httpMethod": "PUT",
+              "title": "Update CEF Ingestor Settings",
+              "description": "This will update the Function App settings to:\n- **Enabled**: {CEF_Enabled}\n- **Log Types**: {Log_Types}\n- **Events/Minute**: {Events_Per_Minute}",
+              "actionName": "Update App Settings",
+              "runLabel": "Apply Changes",
+              "body": "{\n  \"properties\": {\n    \"CEF_ENABLED\": \"{CEF_Enabled}\",\n    \"CEF_LOG_TYPES\": \"{Log_Types}\",\n    \"CEF_EVENTS_PER_MINUTE\": \"{Events_Per_Minute}\"\n  }\n}"
+            }
+          }
+        ]
+      },
+      "name": "apply-button"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 📊 Recent Event Statistics\n\nView recent CEF events ingested into the CommonSecurityLog table."
+      },
+      "name": "stats-header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "timerange-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 3600000
+            }
+          },
+          {
+            "id": "workspace-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "query": "Resources\n| where type =~ 'microsoft.operationalinsights/workspaces'\n| where subscriptionId == '{Subscription:subscriptionId}'\n| project value = id, label = name\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": null
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "stats-parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CommonSecurityLog\n| where DeviceVendor == 'Contoso'\n| where TimeGenerated {TimeRange}\n| summarize EventCount = count() by DeviceProduct\n| order by EventCount desc",
+        "size": 1,
+        "title": "Events by Product",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "piechart",
+        "chartSettings": {
+          "showMetrics": false
+        }
+      },
+      "customWidth": "50",
+      "name": "events-by-product"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CommonSecurityLog\n| where DeviceVendor == 'Contoso'\n| where TimeGenerated {TimeRange}\n| summarize EventCount = count() by DeviceAction\n| order by EventCount desc",
+        "size": 1,
+        "title": "Events by Action",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "piechart",
+        "chartSettings": {
+          "showMetrics": false
+        }
+      },
+      "customWidth": "50",
+      "name": "events-by-action"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CommonSecurityLog\n| where DeviceVendor == 'Contoso'\n| where TimeGenerated {TimeRange}\n| summarize EventCount = count() by bin(TimeGenerated, 5m), DeviceProduct\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "Events Over Time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "name": "events-timechart"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CommonSecurityLog\n| where DeviceVendor == 'Contoso'\n| where TimeGenerated {TimeRange}\n| summarize \n    TotalEvents = count(),\n    HighSeverity = countif(LogSeverity >= 7),\n    MediumSeverity = countif(LogSeverity >= 4 and LogSeverity < 7),\n    LowSeverity = countif(LogSeverity < 4),\n    UniqueSourceIPs = dcount(SourceIP),\n    UniqueDestIPs = dcount(DestinationIP)\n| project \n    ['Total Events'] = TotalEvents,\n    ['High Severity'] = HighSeverity,\n    ['Medium Severity'] = MediumSeverity,\n    ['Low Severity'] = LowSeverity,\n    ['Unique Source IPs'] = UniqueSourceIPs,\n    ['Unique Dest IPs'] = UniqueDestIPs",
+        "size": 4,
+        "title": "Event Summary",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true,
+          "titleContent": {
+            "columnMatch": "Column1",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Column2",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          }
+        }
+      },
+      "name": "event-summary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "CommonSecurityLog\n| where DeviceVendor == 'Contoso'\n| where TimeGenerated {TimeRange}\n| project TimeGenerated, DeviceProduct, Activity, SourceIP, DestinationIP, LogSeverity, DeviceAction\n| order by TimeGenerated desc\n| take 100",
+        "size": 0,
+        "title": "Recent Events (Top 100)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "LogSeverity",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen"
+              }
+            },
+            {
+              "columnMatch": "DeviceAction",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Allow",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Deny",
+                    "representation": "4",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Alert",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "question",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 100,
+          "filter": true
+        }
+      },
+      "name": "recent-events"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 📋 Quick Actions"
+      },
+      "name": "actions-header"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "nav",
+        "links": [
+          {
+            "id": "enable-generation",
+            "cellValue": "{FunctionApp}",
+            "linkTarget": "ArmAction",
+            "linkLabel": "✅ Enable Generation",
+            "style": "secondary",
+            "linkIsContextBlade": true,
+            "armActionContext": {
+              "path": "{FunctionApp}/config/appsettings",
+              "httpMethod": "PUT",
+              "title": "Enable CEF Generation",
+              "description": "This will enable CEF event generation.",
+              "actionName": "Enable Generation",
+              "runLabel": "Enable",
+              "body": "{\n  \"properties\": {\n    \"CEF_ENABLED\": \"true\"\n  }\n}"
+            }
+          },
+          {
+            "id": "disable-generation",
+            "cellValue": "{FunctionApp}",
+            "linkTarget": "ArmAction",
+            "linkLabel": "⛔ Disable Generation",
+            "style": "secondary",
+            "linkIsContextBlade": true,
+            "armActionContext": {
+              "path": "{FunctionApp}/config/appsettings",
+              "httpMethod": "PUT",
+              "title": "Disable CEF Generation",
+              "description": "This will disable CEF event generation.",
+              "actionName": "Disable Generation",
+              "runLabel": "Disable",
+              "body": "{\n  \"properties\": {\n    \"CEF_ENABLED\": \"false\"\n  }\n}"
+            }
+          },
+          {
+            "id": "open-function-app",
+            "cellValue": "{FunctionApp}",
+            "linkTarget": "Resource",
+            "linkLabel": "🔗 Open Function App",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "quick-actions"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n\n**Note:** Changes take effect on the next function execution (runs every 5 minutes). You need **Contributor** access to the Function App to update settings."
+      },
+      "name": "footer"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

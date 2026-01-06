@@ -1,0 +1,28 @@
+# Local development files
+local.settings.json
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Azure Functions
+bin/
+obj/
+.python_packages/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Deployment artifacts
+*.zip

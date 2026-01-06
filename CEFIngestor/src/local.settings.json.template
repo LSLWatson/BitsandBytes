@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "CEF_ENABLED": "true",
+    "CEF_LOG_TYPES": "firewall,ids,auth,antivirus",
+    "CEF_EVENTS_PER_MINUTE": "100",
+    "DCE_ENDPOINT": "<YOUR_DCE_ENDPOINT>",
+    "DCR_IMMUTABLE_ID": "<YOUR_DCR_IMMUTABLE_ID>",
+    "DCR_STREAM_NAME": "Microsoft-CommonSecurityLog"
+  }
+}
