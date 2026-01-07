@@ -41,7 +41,7 @@ This solution generates realistic fake CEF (Common Event Format) security events
 │                                  ▼                                   │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │              Data Collection Rule (DCR)                        │  │
-│  │         (Microsoft-CommonSecurityLog stream)                   │  │
+│  │         (Custom-CEFEvents → CommonSecurityLog)                 │  │
 │  └───────────────────────────────│───────────────────────────────┘  │
 │                                  │                                   │
 │                                  ▼                                   │

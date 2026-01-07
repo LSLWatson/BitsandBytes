@@ -8,6 +8,6 @@
     "CEF_EVENTS_PER_MINUTE": "100",
     "DCE_ENDPOINT": "<YOUR_DCE_ENDPOINT>",
     "DCR_IMMUTABLE_ID": "<YOUR_DCR_IMMUTABLE_ID>",
-    "DCR_STREAM_NAME": "Microsoft-CommonSecurityLog"
+    "DCR_STREAM_NAME": "Custom-CEFEvents"
   }
 }

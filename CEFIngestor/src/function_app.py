@@ -232,7 +232,7 @@ def get_config() -> dict:
         "events_per_minute": int(os.environ.get("CEF_EVENTS_PER_MINUTE", "100")),
         "dce_endpoint": os.environ.get("DCE_ENDPOINT", ""),
         "dcr_immutable_id": os.environ.get("DCR_IMMUTABLE_ID", ""),
-        "stream_name": os.environ.get("DCR_STREAM_NAME", "Microsoft-CommonSecurityLog")
+        "stream_name": os.environ.get("DCR_STREAM_NAME", "Custom-CEFEvents")
     }
 
 

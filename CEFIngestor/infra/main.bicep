@@ -98,10 +98,11 @@ resource dataCollectionEndpoint 'Microsoft.Insights/dataCollectionEndpoints@2022
 resource dataCollectionRule 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
   name: dcrName
   location: location
+  kind: 'Direct'
   properties: {
     dataCollectionEndpointId: dataCollectionEndpoint.id
     streamDeclarations: {
-      'Microsoft-CommonSecurityLog': {
+      'Custom-CEFEvents': {
         columns: [
           { name: 'TimeGenerated', type: 'datetime' }
           { name: 'DeviceVendor', type: 'string' }
@@ -141,7 +142,7 @@ resource dataCollectionRule 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
     }
     dataFlows: [
       {
-        streams: ['Microsoft-CommonSecurityLog']
+        streams: ['Custom-CEFEvents']
         destinations: ['sentinel-workspace']
         transformKql: 'source'
         outputStream: 'Microsoft-CommonSecurityLog'
@@ -209,7 +210,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'DCR_STREAM_NAME'
-          value: 'Microsoft-CommonSecurityLog'
+          value: 'Custom-CEFEvents'
         }
       ]
       ftpsState: 'Disabled'

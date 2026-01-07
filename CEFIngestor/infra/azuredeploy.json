@@ -120,13 +120,14 @@
       "apiVersion": "2022-06-01",
       "name": "[variables('dcrName')]",
       "location": "[parameters('location')]",
+      "kind": "Direct",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]"
       ],
       "properties": {
         "dataCollectionEndpointId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', variables('dceName'))]",
         "streamDeclarations": {
-          "Microsoft-CommonSecurityLog": {
+          "Custom-CEFEvents": {
             "columns": [
               { "name": "TimeGenerated", "type": "datetime" },
               { "name": "DeviceVendor", "type": "string" },
@@ -166,7 +167,7 @@
         },
         "dataFlows": [
           {
-            "streams": ["Microsoft-CommonSecurityLog"],
+            "streams": ["Custom-CEFEvents"],
             "destinations": ["sentinel-workspace"],
             "transformKql": "source",
             "outputStream": "Microsoft-CommonSecurityLog"
@@ -239,7 +240,7 @@
             },
             {
               "name": "DCR_STREAM_NAME",
-              "value": "Microsoft-CommonSecurityLog"
+              "value": "Custom-CEFEvents"
             }
           ],
           "ftpsState": "Disabled",
