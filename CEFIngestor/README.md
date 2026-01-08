@@ -186,6 +186,101 @@ CommonSecurityLog
 - **No Public Access**: Function app can be configured with VNet integration
 - **HTTPS Only**: All endpoints use TLS 1.2+
 
+## 🔧 Troubleshooting
+
+### Function runs but no logs appear in CommonSecurityLog
+
+#### Step 1: Check Function Execution Logs
+
+Run this query in your Log Analytics workspace to see function execution details:
+
+```kql
+// Check recent function executions and their log output
+FunctionAppLogs
+| where TimeGenerated > ago(1h)
+| where FunctionName contains "cef" or Message contains "CEF"
+| project TimeGenerated, Level, Message
+| order by TimeGenerated desc
+```
+
+#### Step 2: Look for Configuration Errors
+
+```kql
+// Find configuration validation failures
+FunctionAppLogs
+| where TimeGenerated > ago(1h)
+| where Message contains "CONFIGURATION" or Message contains "DISABLED" or Message contains "NOT SET"
+| project TimeGenerated, Level, Message
+| order by TimeGenerated desc
+```
+
+#### Step 3: Check for Ingestion Errors
+
+```kql
+// Find ingestion failures with HTTP errors
+FunctionAppLogs
+| where TimeGenerated > ago(1h)
+| where Message contains "FAILED" or Message contains "ERROR" or Level == "Error"
+| project TimeGenerated, Level, Message
+| order by TimeGenerated desc
+```
+
+#### Step 4: Verify Successful Ingestion
+
+```kql
+// Confirm events were successfully sent
+FunctionAppLogs
+| where TimeGenerated > ago(1h)
+| where Message contains "INGESTION SUCCESSFUL"
+| project TimeGenerated, Message
+```
+
+### Common Issues and Solutions
+
+| Symptom | Possible Cause | Solution |
+|---------|----------------|----------|
+| "CEF INGESTOR IS DISABLED" in logs | `CEF_ENABLED` is set to false | Set `CEF_ENABLED=true` in Function App → Configuration → Application settings |
+| "DCE_ENDPOINT is not set" | Missing configuration | Verify `DCE_ENDPOINT` is set to the DCE URI (e.g., `https://xxx.ingest.monitor.azure.com`) |
+| "DCR_IMMUTABLE_ID is not set" | Missing configuration | Get the immutable ID from DCR → JSON View → `immutableId` field |
+| "DCR_STREAM_NAME must start with 'Custom-'" | Wrong stream name | Set `DCR_STREAM_NAME=Custom-CEFEvents` |
+| HTTP 403 error | Permission denied | Add "Monitoring Metrics Publisher" role to the function's managed identity on the DCR |
+| HTTP 404 error | DCE/DCR not found | Verify `DCE_ENDPOINT` and `DCR_IMMUTABLE_ID` values are correct |
+| HTTP 400 error | Schema mismatch | Verify DCR stream declaration columns match the CommonSecurityLog schema |
+| "MANAGED IDENTITY ERROR" | Identity not enabled | Enable system-assigned managed identity: Function App → Identity → System assigned → On |
+| No logs after 10+ minutes | Ingestion delay or DCR transform issue | Check DCR → JSON View → verify `transformKql` is `source` and `outputStream` is `Microsoft-CommonSecurityLog` |
+
+### Verify Role Assignment
+
+1. Navigate to your **Data Collection Rule** in Azure Portal
+2. Go to **Access control (IAM)**
+3. Click **Role assignments**
+4. Verify your Function App's managed identity has **Monitoring Metrics Publisher** role
+
+### Check Application Insights (Alternative)
+
+If FunctionAppLogs isn't populated, check Application Insights:
+
+```kql
+// In Application Insights workspace
+traces
+| where timestamp > ago(1h)
+| where message contains "CEF" or operation_Name contains "cef"
+| project timestamp, message, severityLevel
+| order by timestamp desc
+```
+
+### Verify DCR Configuration
+
+Check that your DCR has the correct structure:
+
+1. Navigate to **Data Collection Rules** in Azure Portal
+2. Select your DCR → **JSON View**
+3. Verify:
+   - `kind` is `Direct`
+   - `streamDeclarations` contains `Custom-CEFEvents`
+   - `dataFlows[0].outputStream` is `Microsoft-CommonSecurityLog`
+   - `dataFlows[0].transformKql` is `source`
+
 ## 📁 Project Structure
 
 ```

@@ -8,10 +8,17 @@ import logging
 import os
 import json
 import random
+import traceback
 from datetime import datetime, timedelta, timezone
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, CredentialUnavailableError
 from azure.monitor.ingestion import LogsIngestionClient
-from azure.core.exceptions import HttpResponseError
+from azure.core.exceptions import HttpResponseError, ClientAuthenticationError
+
+# Configure logging format for better diagnostics
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = func.FunctionApp()
 
@@ -225,8 +232,8 @@ def generate_events_batch(log_types: list, count: int, window_minutes: int = 5) 
 
 
 def get_config() -> dict:
-    """Get configuration from environment variables (App Settings)."""
-    return {
+    """Get configuration from environment variables (App Settings) with verbose logging."""
+    config = {
         "enabled": os.environ.get("CEF_ENABLED", "true").lower() == "true",
         "log_types": [lt.strip() for lt in os.environ.get("CEF_LOG_TYPES", "firewall,ids,auth,antivirus").split(",")],
         "events_per_minute": int(os.environ.get("CEF_EVENTS_PER_MINUTE", "100")),
@@ -234,6 +241,21 @@ def get_config() -> dict:
         "dcr_immutable_id": os.environ.get("DCR_IMMUTABLE_ID", ""),
         "stream_name": os.environ.get("DCR_STREAM_NAME", "Custom-CEFEvents")
     }
+    
+    # Log configuration for diagnostics (mask sensitive parts of DCR ID)
+    dcr_masked = config["dcr_immutable_id"][:10] + "..." if len(config["dcr_immutable_id"]) > 10 else config["dcr_immutable_id"]
+    logging.info("=" * 60)
+    logging.info("CEF INGESTOR CONFIGURATION")
+    logging.info("=" * 60)
+    logging.info(f"  CEF_ENABLED: {config['enabled']}")
+    logging.info(f"  CEF_LOG_TYPES: {config['log_types']}")
+    logging.info(f"  CEF_EVENTS_PER_MINUTE: {config['events_per_minute']}")
+    logging.info(f"  DCE_ENDPOINT: {config['dce_endpoint'] or '(NOT SET)'}")
+    logging.info(f"  DCR_IMMUTABLE_ID: {dcr_masked or '(NOT SET)'}")
+    logging.info(f"  DCR_STREAM_NAME: {config['stream_name']}")
+    logging.info("=" * 60)
+    
+    return config
 
 
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="timer", run_on_startup=False)
@@ -242,20 +264,48 @@ def cef_ingestor(timer: func.TimerRequest) -> None:
     Timer-triggered function that generates and ingests CEF events.
     Runs every 5 minutes.
     """
-    logging.info("CEF Ingestor function triggered")
+    start_time = datetime.now(timezone.utc)
+    logging.info("#" * 60)
+    logging.info("CEF INGESTOR FUNCTION STARTED")
+    logging.info(f"Execution time: {start_time.isoformat()}")
+    logging.info("#" * 60)
     
-    # Get configuration
+    # Get configuration (this logs all values)
     config = get_config()
     
     # Check if enabled
     if not config["enabled"]:
-        logging.info("CEF Ingestor is disabled via configuration")
+        logging.warning("!" * 60)
+        logging.warning("CEF INGESTOR IS DISABLED")
+        logging.warning("Set CEF_ENABLED=true in App Settings to enable")
+        logging.warning("!" * 60)
         return
     
-    # Validate configuration
-    if not config["dce_endpoint"] or not config["dcr_immutable_id"]:
-        logging.error("DCE_ENDPOINT and DCR_IMMUTABLE_ID must be configured")
-        return
+    # Validate configuration with detailed error messages
+    validation_errors = []
+    if not config["dce_endpoint"]:
+        validation_errors.append("DCE_ENDPOINT is not set or empty")
+    elif not config["dce_endpoint"].startswith("https://"):
+        validation_errors.append(f"DCE_ENDPOINT must start with https:// (got: {config['dce_endpoint']})")
+    
+    if not config["dcr_immutable_id"]:
+        validation_errors.append("DCR_IMMUTABLE_ID is not set or empty")
+    elif not config["dcr_immutable_id"].startswith("dcr-"):
+        validation_errors.append(f"DCR_IMMUTABLE_ID should start with 'dcr-' (got: {config['dcr_immutable_id'][:15]}...)")
+    
+    if not config["stream_name"]:
+        validation_errors.append("DCR_STREAM_NAME is not set or empty")
+    elif not config["stream_name"].startswith("Custom-"):
+        validation_errors.append(f"DCR_STREAM_NAME must start with 'Custom-' (got: {config['stream_name']})")
+    
+    if validation_errors:
+        logging.error("!" * 60)
+        logging.error("CONFIGURATION VALIDATION FAILED")
+        for error in validation_errors:
+            logging.error(f"  - {error}")
+        logging.error("!" * 60)
+        logging.error("Fix App Settings in Azure Portal: Function App -> Configuration -> Application settings")
+        raise ValueError(f"Configuration errors: {'; '.join(validation_errors)}")
     
     if not config["log_types"]:
         logging.warning("No log types configured, using defaults")
@@ -267,36 +317,119 @@ def cef_ingestor(timer: func.TimerRequest) -> None:
     logging.info(f"Generating {batch_size} events for log types: {config['log_types']}")
     
     # Generate events
-    events = generate_events_batch(
-        log_types=config["log_types"],
-        count=batch_size,
-        window_minutes=5
-    )
-    
-    logging.info(f"Generated {len(events)} CEF events")
+    try:
+        events = generate_events_batch(
+            log_types=config["log_types"],
+            count=batch_size,
+            window_minutes=5
+        )
+        logging.info(f"Generated {len(events)} CEF events successfully")
+        
+        # Log sample event for debugging
+        if events:
+            logging.info("Sample event (first):")
+            logging.info(json.dumps(events[0], indent=2, default=str))
+    except Exception as e:
+        logging.error(f"Failed to generate events: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise
     
     # Ingest to Sentinel via Logs Ingestion API
+    logging.info("-" * 60)
+    logging.info("STARTING INGESTION TO LOGS INGESTION API")
+    logging.info(f"  Endpoint: {config['dce_endpoint']}")
+    logging.info(f"  Stream: {config['stream_name']}")
+    logging.info(f"  Event count: {len(events)}")
+    logging.info("-" * 60)
+    
     try:
+        logging.info("Acquiring DefaultAzureCredential (Managed Identity)...")
         credential = DefaultAzureCredential()
+        logging.info("Credential acquired successfully")
+        
+        logging.info("Creating LogsIngestionClient...")
         client = LogsIngestionClient(
             endpoint=config["dce_endpoint"],
             credential=credential,
             logging_enable=True
         )
+        logging.info("LogsIngestionClient created successfully")
         
         # Upload logs
+        logging.info("Uploading events to Logs Ingestion API...")
         client.upload(
             rule_id=config["dcr_immutable_id"],
             stream_name=config["stream_name"],
             logs=events
         )
         
-        logging.info(f"Successfully ingested {len(events)} events to Sentinel")
+        elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
+        logging.info("#" * 60)
+        logging.info("INGESTION SUCCESSFUL")
+        logging.info(f"  Events ingested: {len(events)}")
+        logging.info(f"  Execution time: {elapsed:.2f} seconds")
+        logging.info(f"  Destination: CommonSecurityLog table")
+        logging.info("#" * 60)
+        
+    except CredentialUnavailableError as e:
+        logging.error("!" * 60)
+        logging.error("AUTHENTICATION FAILED - MANAGED IDENTITY ERROR")
+        logging.error(f"  Error: {str(e)}")
+        logging.error("  Possible causes:")
+        logging.error("    1. System-assigned managed identity not enabled on Function App")
+        logging.error("    2. Managed identity doesn't have 'Monitoring Metrics Publisher' role on DCR")
+        logging.error("  Fix: Azure Portal -> Function App -> Identity -> System assigned -> Status: On")
+        logging.error("!" * 60)
+        raise
+        
+    except ClientAuthenticationError as e:
+        logging.error("!" * 60)
+        logging.error("AUTHENTICATION FAILED - CLIENT AUTH ERROR")
+        logging.error(f"  Error: {str(e)}")
+        logging.error("  Possible causes:")
+        logging.error("    1. Managed identity not assigned 'Monitoring Metrics Publisher' role")
+        logging.error("    2. Role assignment not propagated yet (wait 5-10 minutes)")
+        logging.error("  Fix: DCR -> Access control (IAM) -> Add role assignment")
+        logging.error("!" * 60)
+        raise
         
     except HttpResponseError as e:
-        logging.error(f"Failed to ingest events: {e.message}")
-        logging.error(f"Status code: {e.status_code}")
+        logging.error("!" * 60)
+        logging.error("INGESTION FAILED - HTTP ERROR")
+        logging.error(f"  Status code: {e.status_code}")
+        logging.error(f"  Error message: {e.message}")
+        logging.error(f"  Error reason: {e.reason}")
+        
+        if hasattr(e, 'response') and e.response:
+            try:
+                error_body = e.response.text()
+                logging.error(f"  Response body: {error_body}")
+            except:
+                pass
+        
+        # Provide specific guidance based on status code
+        if e.status_code == 403:
+            logging.error("  Diagnosis: Permission denied")
+            logging.error("  Fix: Verify managed identity has 'Monitoring Metrics Publisher' role on DCR")
+        elif e.status_code == 404:
+            logging.error("  Diagnosis: DCE endpoint or DCR not found")
+            logging.error("  Fix: Verify DCE_ENDPOINT and DCR_IMMUTABLE_ID are correct")
+        elif e.status_code == 400:
+            logging.error("  Diagnosis: Bad request - likely schema mismatch")
+            logging.error("  Fix: Verify DCR stream declaration columns match the event schema")
+        elif e.status_code == 413:
+            logging.error("  Diagnosis: Payload too large")
+            logging.error("  Fix: Reduce CEF_EVENTS_PER_MINUTE setting")
+        
+        logging.error("!" * 60)
         raise
+        
     except Exception as e:
-        logging.error(f"Unexpected error during ingestion: {str(e)}")
+        logging.error("!" * 60)
+        logging.error("UNEXPECTED ERROR DURING INGESTION")
+        logging.error(f"  Error type: {type(e).__name__}")
+        logging.error(f"  Error message: {str(e)}")
+        logging.error(f"  Stack trace:")
+        logging.error(traceback.format_exc())
+        logging.error("!" * 60)
         raise
