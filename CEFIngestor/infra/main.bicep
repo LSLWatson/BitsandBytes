@@ -110,7 +110,7 @@ resource dataCollectionRule 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
           { name: 'DeviceVersion', type: 'string' }
           { name: 'DeviceEventClassID', type: 'string' }
           { name: 'Activity', type: 'string' }
-          { name: 'LogSeverity', type: 'int' }
+          { name: 'LogSeverity', type: 'string' }
           { name: 'SourceIP', type: 'string' }
           { name: 'DestinationIP', type: 'string' }
           { name: 'SourceHostName', type: 'string' }
@@ -128,7 +128,7 @@ resource dataCollectionRule 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
           { name: 'FilePath', type: 'string' }
           { name: 'FileHash', type: 'string' }
           { name: 'SimplifiedDeviceAction', type: 'string' }
-          { name: 'ReceiptTime', type: 'datetime' }
+          { name: 'ReceiptTime', type: 'string' }
         ]
       }
     }

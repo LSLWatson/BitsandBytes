@@ -172,7 +172,7 @@ def generate_cef_event(log_type: str, timestamp: datetime) -> dict:
         "DeviceVersion": template["DeviceVersion"],
         "DeviceEventClassID": get_random_item(template["DeviceEventClassID"]),
         "Activity": get_random_item(template["Activity"]),
-        "LogSeverity": get_random_item(template["LogSeverity"]),
+        "LogSeverity": str(get_random_item(template["LogSeverity"])),  # Must be string for CommonSecurityLog
         "SourceIP": source_ip,
         "DestinationIP": dest_ip,
         "SourceHostName": random.choice(HOSTNAMES),
